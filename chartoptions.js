@@ -58,7 +58,7 @@ var volumeOptions = {
     renderTo: 'volume'
   },
   title: {
-    text: 'Volume'
+    text: 'Download volume'
   },
   yAxis: {
     title: {
