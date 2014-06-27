@@ -203,6 +203,21 @@ function makeListseriesForVersion(version)
   return p;
 }
 
+function filterDuplicateDates(series)
+{
+  // Series is an array of pairs [[date, volume]]. If successive dates have the
+  // same volume, delete
+  for (var i = series.length - 1; i > 0; i--) {
+    if (series[i][0] == series[i-1][0]) {
+      if (series[i][1] > 0) {
+        series.splice(i - 1, 1);
+      } else {
+        series.splice(i, 1);
+      }
+    }
+  }
+}
+
 function makeSBSeries(versions) {
   var promises = [];
   sbSeries = { 0: [], 1: [], 2: [], 3: [] };
@@ -213,7 +228,7 @@ function makeSBSeries(versions) {
     .then(function() {
       for (var i in sbLabels) {
         sbSeries[sbLabels[i]] = sbSeries[sbLabels[i]].sort(sortByDate);
-        print(JSON.stringify(sbSeries, undefined, 2));
+        filterDuplicateDates(sbSeries[sbLabels[i]]);
         sbChart.series[sbLabels[i]].setData(sbSeries[sbLabels[i]], true);
       }
     });
@@ -235,12 +250,12 @@ function makeSBSeriesForVersion(version) {
           date.setUTCHours(0);
           sbSeries[sbLabels.PHISH_TOP].push([date.getTime(),
             data[WARNING_PHISHING_PAGE_TOP]]);
-          //sbSeries[sbLabels.PHISH_FRAME].push([date.getTime(),
-          //  data[WARNING_PHISHING_PAGE_FRAME]]);
+          sbSeries[sbLabels.PHISH_FRAME].push([date.getTime(),
+            data[WARNING_PHISHING_PAGE_FRAME]]);
           sbSeries[sbLabels.MALWARE_TOP].push([date.getTime(),
             data[WARNING_MALWARE_PAGE_TOP]]);
-          //sbSeries[sbLabels.MALWARE_FRAME].push([date.getTime(),
-          //  data[WARNING_MALWARE_PAGE_FRAME]]);
+          sbSeries[sbLabels.MALWARE_FRAME].push([date.getTime(),
+            data[WARNING_MALWARE_PAGE_FRAME]]);
         });
         // We've collected all of the data for this version, so resolve.
         resolve(true);
