@@ -7,7 +7,7 @@ var requiredMeasures = {
 
 // Versions for which we have any data.
 var channels = {
-  nightly: [ "nightly/31", "nightly/32", "nightly/33" ],
+  nightly: [ "nightly/33" ],
   aurora: [ "aurora/31", "aurora/32" ],
   beta: [ "beta/31" ]
 };
@@ -20,13 +20,19 @@ var minVolume = 1000;
 var versionedMeasures = [];
 
 // Set up our series
-var blockRate = {};
-var blockVolume = {};
+var blockRate = [];
+var blockVolume = [];
+var volume = [];
+var ALLOW = 0;
+var BLOCK = 1;
+var NONE = 2;
+var lists = { 0: [], 1: [], 2: []};
+
 // Setup our highcharts on document-ready.
 $(document).ready(function() {
   blockRateChart = new Highcharts.StockChart(blockRateOptions);
-  //blockVolumeChart = new Highcharts.StockChart(blockVolumeOptions);
-  //localChart = new Highcharts.StockChart(localOptions);
+  volumeChart = new Highcharts.StockChart(volumeOptions);
+  listChart = new Highcharts.StockChart(listOptions);
 });
 
 // Print auxiliary function
@@ -54,12 +60,14 @@ Telemetry.init(function() {
 });
 
 function makeGraphsForChannel(channel) {
-  Object.keys(requiredMeasures).forEach(function(m) {
-    blockRate[requiredMeasures[m]] = [];
-    blockVolume[requiredMeasures[m]] = [];
-  });
-  makeTimeseries(channel, channels[channel]);
+  blockRate = [];
+  blockVolume = [];
+  volume = [];
+  makeTimeseries(channels[channel]);
+  makeListseries(channels[channel]);
+  makeSBSeries(channels[channel]);
 }
+
 // Sort [date, {rate|volume}] pairs based on the date
 function sortByDate(p1, p2)
 {
@@ -68,7 +76,7 @@ function sortByDate(p1, p2)
 
 // Returns a promise that resolves when all of the versions for all of the
 // required measures have been stuffed into the timeseries.
-function makeTimeseries(channel, versions)
+function makeTimeseries(versions)
 {
   // construct a single graph for all versions of nightly
   var promises = [];
@@ -79,12 +87,12 @@ function makeTimeseries(channel, versions)
     .then(function() {
       // Wait until all of the series data has been returned before redrawing
       // highcharts.
-      for (var i in tsSeries) {
-        blockRate[i] = blockRate[i].sort(sortByDate);
-        blockVolume[i] = blockVolume[i].sort(sortByDate);
-        blockRateChart.series[i].setData(blockRate[i], true);
-        blockVolumeChart.series[i].setData(blockVolume[i], true);
-      }
+      blockRate = blockRate.sort(sortByDate);
+      blockVolume = blockVolume.sort(sortByDate);
+      volume = volume.sort(sortByDate);
+      blockRateChart.series[0].setData(blockRate, true);
+      volumeChart.series[0].setData(blockVolume, true);
+      volumeChart.series[1].setData(volume, true);
     });
 }
 
@@ -96,10 +104,10 @@ function makeTimeseriesForVersion(v)
   var p = new Promise(function(resolve, reject) {
     Telemetry.measures(v, function(measures) {
       for (var m in measures) {
-	// Telemetry.loadEvolutionOverBuilds(v, m) never calls the callback if
-	// the given measure doesn't exist for that version, so we must make
-	// sure to only call makeTimeseries for measures that exist.
-	if (m in requiredMeasures) {
+        // Telemetry.loadEvolutionOverBuilds(v, m) never calls the callback if
+        // the given measure doesn't exist for that version, so we must make
+        // sure to only call makeTimeseries for measures that exist.
+        if (m in requiredMeasures) {
           promises.push(makeTimeseriesForMeasure(v, m));
         }
       }
@@ -126,10 +134,9 @@ function makeTimeseriesForMeasure(version, measure) {
           // shouldBlock: false = 0, true = 1
           if (data[0] + data[1] > minVolume) {
             date.setUTCHours(0);
-            blockRate[index].push([date.getTime(),
-                                         data[1] / (data[0] + data[1])]);
-            blockVolume[index].push([date.getTime(),
-                                           data[0] + data[1]]);
+            blockRate.push([date.getTime(), data[1] / (data[0] + data[1])]);
+            blockVolume.push([date.getTime(), data[1]]);
+            volume.push([date.getTime(), data[0] + data[1]]);
           }
         });
         // We've collected all of the data for this version, so resolve.
@@ -138,4 +145,36 @@ function makeTimeseriesForMeasure(version, measure) {
     );
   });
   return p;
+}
+
+function makeListseries(version)
+{
+  var measure = "APPLICATION_REPUTATION_LOCAL";
+  var p = new Promise(function(resolve, reject) {
+    Telemetry.loadEvolutionOverBuilds(version, measure,
+      function(histogramEvolution) {
+        histogramEvolution.each(function(date, histogram) {
+          var data = histogram.map(function(count, start, end, index) {
+            return count;
+          });
+          // Skip dates with fewer than 1000 submissions
+          // shouldBlock: false = 0, true = 1
+          if (data[ALLOW] + data[BLOCK] + data[NONE] > minVolume) {
+            date.setUTCHours(0);
+            for (var i = ALLOW; i <= NONE; i++) {
+              lists[i].push([date.getTime(), data[i]]);
+            }
+          }
+        });
+        // We've collected all of the data for this version, so resolve.
+        resolve(true);
+      }
+    );
+  });
+  p.then(function() {
+    for (var i = ALLOW; i <= NONE; i++) {
+      lists[i] = lists[i].sort(sortByDate);
+      listChart.series[i].setData(lists[i], true);
+    }
+  });
 }
