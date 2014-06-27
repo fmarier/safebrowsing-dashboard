@@ -116,6 +116,8 @@ var sbOptions = {
     },
   },
   series: [{ name: 'Phishing' },
-           { name: 'Malware' }
+           { name: 'Phishing Frame' },
+           { name: 'Malware' },
+           { name: 'Malware Frame' }
   ]
 };

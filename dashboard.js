@@ -31,9 +31,13 @@ var NONE = 2;
 var lists = { 0: [], 1: [], 2: [] };
 
 // Phishing and malware results
-var PHISH = 0;
-var MALWARE = 1;
-var sbSeries = { 0: [], 1: [] };
+var sbLabels = {
+  PHISH_TOP: 0,
+  PHISH_FRAME: 1,
+  MALWARE_TOP: 2,
+  MALWARE_FRAME: 3
+};
+var sbSeries = {};
 
 // Setup our highcharts on document-ready.
 $(document).ready(function() {
@@ -73,9 +77,6 @@ function makeGraphsForChannel(channel) {
   volume = [];
   for (var i in lists) {
     lists[i] = [];
-  }
-  for (var i in sbSeries) {
-    sbSeries[i] = [];
   }
   makeTimeseries(channels[channel]);
   makeListseries(channels[channel]);
@@ -204,14 +205,16 @@ function makeListseriesForVersion(version)
 
 function makeSBSeries(versions) {
   var promises = [];
+  sbSeries = { 0: [], 1: [], 2: [], 3: [] };
   versions.forEach(function(v) {
     promises.push(makeSBSeriesForVersion(v));
   });
   return Promise.all(promises)
     .then(function() {
-      for (var i = PHISH; i <= MALWARE; i++) {
-        sbSeries[i] = sbSeries[i].sort(sortByDate);
-        sbChart.series[i].setData(sbSeries[i], true);
+      for (var i in sbLabels) {
+        sbSeries[sbLabels[i]] = sbSeries[sbLabels[i]].sort(sortByDate);
+        print(JSON.stringify(sbSeries, undefined, 2));
+        sbChart.series[sbLabels[i]].setData(sbSeries[sbLabels[i]], true);
       }
     });
 }
@@ -219,7 +222,9 @@ function makeSBSeries(versions) {
 function makeSBSeriesForVersion(version) {
   var measure = "SECURITY_UI";
   var WARNING_PHISHING_PAGE_TOP = 56;
+  var WARNING_PHISHING_PAGE_FRAME = 64;
   var WARNING_MALWARE_PAGE_TOP = 52;
+  var WARNING_MALWARE_PAGE_FRAME = 60;
   var p = new Promise(function(resolve, reject) {
     Telemetry.loadEvolutionOverBuilds(version, measure,
       function(histogramEvolution) {
@@ -228,10 +233,14 @@ function makeSBSeriesForVersion(version) {
             return count;
           });
           date.setUTCHours(0);
-          sbSeries[PHISH].push([date.getTime(),
-                                data[WARNING_PHISHING_PAGE_TOP]]);
-          sbSeries[MALWARE].push([date.getTime(),
-                                  data[WARNING_MALWARE_PAGE_TOP]]);
+          sbSeries[sbLabels.PHISH_TOP].push([date.getTime(),
+            data[WARNING_PHISHING_PAGE_TOP]]);
+          //sbSeries[sbLabels.PHISH_FRAME].push([date.getTime(),
+          //  data[WARNING_PHISHING_PAGE_FRAME]]);
+          sbSeries[sbLabels.MALWARE_TOP].push([date.getTime(),
+            data[WARNING_MALWARE_PAGE_TOP]]);
+          //sbSeries[sbLabels.MALWARE_FRAME].push([date.getTime(),
+          //  data[WARNING_MALWARE_PAGE_FRAME]]);
         });
         // We've collected all of the data for this version, so resolve.
         resolve(true);
