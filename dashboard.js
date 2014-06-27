@@ -7,9 +7,9 @@ var requiredMeasures = {
 
 // Versions for which we have any data.
 var channels = {
-  nightly: [ "nightly/33" ],
+  nightly: [ "nightly/31", "nightly/32", "nightly/33" ],
   aurora: [ "aurora/31", "aurora/32" ],
-  beta: [ "beta/31" ]
+  beta: [ "beta/26", "beta/27", "beta/28", "beta/27", "beta/29", "beta/30", "beta/31" ]
 };
 var currentChannel = "nightly";
 
@@ -23,16 +23,24 @@ var versionedMeasures = [];
 var blockRate = [];
 var blockVolume = [];
 var volume = [];
+
+// Local list results
 var ALLOW = 0;
 var BLOCK = 1;
 var NONE = 2;
-var lists = { 0: [], 1: [], 2: []};
+var lists = { 0: [], 1: [], 2: [] };
+
+// Phishing and malware results
+var PHISH = 0;
+var MALWARE = 1;
+var sbSeries = { 0: [], 1: [] };
 
 // Setup our highcharts on document-ready.
 $(document).ready(function() {
   blockRateChart = new Highcharts.StockChart(blockRateOptions);
   volumeChart = new Highcharts.StockChart(volumeOptions);
   listChart = new Highcharts.StockChart(listOptions);
+  sbChart = new Highcharts.StockChart(sbOptions);
 });
 
 // Print auxiliary function
@@ -63,6 +71,12 @@ function makeGraphsForChannel(channel) {
   blockRate = [];
   blockVolume = [];
   volume = [];
+  for (var i in lists) {
+    lists[i] = [];
+  }
+  for (var i in sbSeries) {
+    sbSeries[i] = [];
+  }
   makeTimeseries(channels[channel]);
   makeListseries(channels[channel]);
   makeSBSeries(channels[channel]);
@@ -147,7 +161,21 @@ function makeTimeseriesForMeasure(version, measure) {
   return p;
 }
 
-function makeListseries(version)
+function makeListseries(versions) {
+  var promises = [];
+  versions.forEach(function(v) {
+    promises.push(makeListseriesForVersion(v));
+  });
+  return Promise.all(promises)
+    .then(function() {
+      for (var i = ALLOW; i <= NONE; i++) {
+        lists[i] = lists[i].sort(sortByDate);
+        listChart.series[i].setData(lists[i], true);
+      }
+    });
+}
+
+function makeListseriesForVersion(version)
 {
   var measure = "APPLICATION_REPUTATION_LOCAL";
   var p = new Promise(function(resolve, reject) {
@@ -171,10 +199,44 @@ function makeListseries(version)
       }
     );
   });
-  p.then(function() {
-    for (var i = ALLOW; i <= NONE; i++) {
-      lists[i] = lists[i].sort(sortByDate);
-      listChart.series[i].setData(lists[i], true);
-    }
+  return p;
+}
+
+function makeSBSeries(versions) {
+  var promises = [];
+  versions.forEach(function(v) {
+    promises.push(makeSBSeriesForVersion(v));
   });
+  return Promise.all(promises)
+    .then(function() {
+      for (var i = PHISH; i <= MALWARE; i++) {
+        sbSeries[i] = sbSeries[i].sort(sortByDate);
+        sbChart.series[i].setData(sbSeries[i], true);
+      }
+    });
+}
+
+function makeSBSeriesForVersion(version) {
+  var measure = "SECURITY_UI";
+  var WARNING_PHISHING_PAGE_TOP = 56;
+  var WARNING_MALWARE_PAGE_TOP = 52;
+  var p = new Promise(function(resolve, reject) {
+    Telemetry.loadEvolutionOverBuilds(version, measure,
+      function(histogramEvolution) {
+        histogramEvolution.each(function(date, histogram) {
+          var data = histogram.map(function(count, start, end, index) {
+            return count;
+          });
+          date.setUTCHours(0);
+          sbSeries[PHISH].push([date.getTime(),
+                                data[WARNING_PHISHING_PAGE_TOP]]);
+          sbSeries[MALWARE].push([date.getTime(),
+                                  data[WARNING_MALWARE_PAGE_TOP]]);
+        });
+        // We've collected all of the data for this version, so resolve.
+        resolve(true);
+      }
+    );
+  });
+  return p;
 }

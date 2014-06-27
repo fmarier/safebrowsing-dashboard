@@ -94,3 +94,28 @@ var listOptions = {
            { name: 'None' }
   ]
 };
+
+var sbChart;
+var sbOptions = {
+  legend: {
+    enabled: true,
+    layout: 'vertical',
+    align: 'right',
+    verticalAlign: 'middle',
+    borderWidth: 2
+  },
+  chart: {
+    renderTo: 'safebrowsing'
+  },
+  title: {
+    text: 'Safebrowsing warnings'
+  },
+  yAxis: {
+    title: {
+      text: 'Type'
+    },
+  },
+  series: [{ name: 'Phishing' },
+           { name: 'Malware' }
+  ]
+};
