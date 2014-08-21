@@ -7,9 +7,9 @@ var requiredMeasures = {
 
 // Versions for which we have any data.
 var channels = {
-  nightly: [ "nightly/31", "nightly/32", "nightly/33" ],
-  aurora: [ "aurora/31", "aurora/32" ],
-  beta: [ "beta/26", "beta/27", "beta/28", "beta/27", "beta/29", "beta/30", "beta/31" ]
+  nightly: [ "nightly/31", "nightly/32", "nightly/33", "nightly/34", "nightly/35" ],
+  aurora: [ "aurora/31", "aurora/32", "aurora/33", "aurora/34" ],
+  beta: [ "beta/26", "beta/27", "beta/28", "beta/27", "beta/29", "beta/30", "beta/31", "beta/32", "beta/33" ]
 };
 var currentChannel = "nightly";
 
@@ -87,6 +87,22 @@ function makeGraphsForChannel(channel) {
 function sortByDate(p1, p2)
 {
   return p1[0] - p2[0];
+}
+
+// Filter duplicate dates to account for screwed up telemetry data
+function filterDuplicateDates(series)
+{
+  // Series is an array of pairs [[date, volume]]. If successive dates have the
+  // same volume, delete
+  for (var i = series.length - 1; i > 0; i--) {
+    if (series[i][0] == series[i-1][0]) {
+      if (series[i][1] > 0) {
+        series.splice(i - 1, 1);
+      } else {
+        series.splice(i, 1);
+      }
+    }
+  }
 }
 
 // Returns a promise that resolves when all of the versions for all of the
