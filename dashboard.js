@@ -7,9 +7,9 @@ var requiredMeasures = {
 
 // Versions for which we have any data.
 var channels = {
-  nightly: [ "nightly/31", "nightly/32", "nightly/33", "nightly/34", "nightly/35" ],
-  aurora: [ "aurora/31", "aurora/32", "aurora/33", "aurora/34" ],
-  beta: [ "beta/26", "beta/27", "beta/28", "beta/27", "beta/29", "beta/30", "beta/31", "beta/32", "beta/33" ]
+  nightly: [ "nightly/31", "nightly/32", "nightly/33", "nightly/34" ],
+  aurora: [ "aurora/31", "aurora/32", "aurora/33" ],
+  beta: [ "beta/26", "beta/27", "beta/28", "beta/27", "beta/29", "beta/30", "beta/31", "beta/32" ]
 };
 var currentChannel = "nightly";
 
