@@ -3,24 +3,24 @@ safebrowsing-dashboard
 
 Telemetry dashboard for application reputation.
 
-# Download block rates
+## Download block rates
 
 Including all of the checks, we're blocking 0.3% of the downloads that we call application reputation on (which should be most downloads, regardless of extension)
 
 * <https://mxr.mozilla.org/mozilla-central/source/toolkit/components/downloads/ApplicationReputation.cpp#724>
 * <https://mxr.mozilla.org/mozilla-central/source/toolkit/components/downloads/ApplicationReputation.cpp#1086>
 
-# Download volume
+## Download volume
 
 Total number of downloads.
 
-# Local list graph
+## Local list graph
 
 * <https://mxr.mozilla.org/mozilla-central/source/toolkit/components/downloads/ApplicationReputation.cpp#327>
 ** we check all URIs in the redirect chain, so a long redirect chain will hit this graph more than once for a single download
 ** this graph doesn't have anything to do with the number of downloads
 
-# Safebrowsing warnings
+## Safebrowsing warnings
 
 Number of times a page load is blocked for malware/phishing reasons (distinction between top-level page and just iframe).
 
