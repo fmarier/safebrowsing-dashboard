@@ -35,7 +35,9 @@ var sbLabels = {
   PHISH_TOP: 0,
   PHISH_FRAME: 1,
   MALWARE_TOP: 2,
-  MALWARE_FRAME: 3
+  MALWARE_FRAME: 3,
+  UNWANTED_TOP: 4,
+  UNWANTED_FRAME: 5
 };
 var sbSeries = {};
 
@@ -236,7 +238,7 @@ function filterDuplicateDates(series)
 
 function makeSBSeries(versions) {
   var promises = [];
-  sbSeries = { 0: [], 1: [], 2: [], 3: [] };
+  sbSeries = { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [] };
   versions.forEach(function(v) {
     promises.push(makeSBSeriesForVersion(v));
   });
@@ -256,6 +258,8 @@ function makeSBSeriesForVersion(version) {
   var WARNING_PHISHING_PAGE_FRAME = 64;
   var WARNING_MALWARE_PAGE_TOP = 52;
   var WARNING_MALWARE_PAGE_FRAME = 60;
+  var WARNING_UNWANTED_PAGE_TOP = 92;
+  var WARNING_UNWANTED_PAGE_FRAME = 96;
   var p = new Promise(function(resolve, reject) {
     Telemetry.loadEvolutionOverBuilds(version, measure,
       function(histogramEvolution) {
@@ -272,6 +276,10 @@ function makeSBSeriesForVersion(version) {
             data[WARNING_MALWARE_PAGE_TOP]]);
           sbSeries[sbLabels.MALWARE_FRAME].push([date.getTime(),
             data[WARNING_MALWARE_PAGE_FRAME]]);
+          sbSeries[sbLabels.UNWANTED_TOP].push([date.getTime(),
+            data[WARNING_UNWANTED_PAGE_TOP]]);
+          sbSeries[sbLabels.UNWANTED_FRAME].push([date.getTime(),
+            data[WARNING_UNWANTED_PAGE_FRAME]]);
         });
         // We've collected all of the data for this version, so resolve.
         resolve(true);

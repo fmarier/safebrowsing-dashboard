@@ -118,6 +118,8 @@ var sbOptions = {
   series: [{ name: 'Phishing' },
            { name: 'Phishing Frame' },
            { name: 'Malware' },
-           { name: 'Malware Frame' }
+           { name: 'Malware Frame' },
+           { name: 'Unwanted' },
+           { name: 'Unwanted Frame' }
   ]
 };
